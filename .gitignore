@@ -1,0 +1,6 @@
+.env*
+.venv/
+.vscode/
+*.log
+*.session
+*.md

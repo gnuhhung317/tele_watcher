@@ -1,0 +1,45 @@
+# Docker Compose for Watch Caller
+version: '3.8'
+
+services:
+  watch-caller:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: watch-caller
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+      - ./downloads:/app/downloads
+      - ./watcher.session:/app/watcher.session
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+  # Optional: Add monitoring with Prometheus/Grafana
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+  
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+
+# volumes:
+#   grafana_data:

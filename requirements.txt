@@ -1,0 +1,4 @@
+google-generativeai
+telethon
+ccxt
+python-dotenv
