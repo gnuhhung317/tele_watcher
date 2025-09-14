@@ -48,11 +48,11 @@ class TelegramWatcher:
             self.is_running = True
             logger.info("Telegram client started successfully")
             
-            # Verify channels
-            await self._verify_channels()
+            # Verify channels and get entities
+            channel_entities = await self._verify_channels()
             
-            # Setup message handler
-            @self.client.on(events.NewMessage(chats=self.config.channels))
+            # Setup message handler with entity objects
+            @self.client.on(events.NewMessage(chats=channel_entities))
             async def message_handler(event: events.NewMessage.Event):
                 await self._handle_message(event)
             
@@ -76,15 +76,44 @@ class TelegramWatcher:
         await self.client.run_until_disconnected()
     
     async def _verify_channels(self):
-        """Verify that all channels are accessible."""
+        """Verify that all channels are accessible.
+        
+        Returns:
+            List of channel entities that can be monitored
+        """
+        # Get all dialogs first
+        logger.info("Getting accessible dialogs...")
+        dialogs = await self.client.get_dialogs(limit=100)
+        
+        # Create mapping of channel ID to entity
+        available_channels = {}
+        for dialog in dialogs:
+            # Store both ID and title/username for lookup
+            available_channels[str(dialog.entity.id)] = dialog.entity
+            if hasattr(dialog.entity, 'username') and dialog.entity.username:
+                available_channels[dialog.entity.username] = dialog.entity
+            if hasattr(dialog.entity, 'title') and dialog.entity.title:
+                available_channels[dialog.entity.title] = dialog.entity
+        
+        logger.info(f"Found {len(dialogs)} accessible dialogs")
+        
+        channel_entities = []
         for channel in self.config.channels:
-            try:
-                entity = await self.client.get_entity(channel)
+            channel_str = str(channel)
+            if channel_str in available_channels:
+                entity = available_channels[channel_str]
+                channel_entities.append(entity)
                 channel_name = getattr(entity, 'title', getattr(entity, 'username', channel))
-                logger.info(f"Watching channel: {channel_name} ({channel})")
-            except Exception as e:
-                logger.error(f"Cannot access channel {channel}: {e}")
-                raise
+                logger.info(f"✅ Watching channel: {channel_name} (ID: {channel})")
+            else:
+                logger.error(f"❌ Cannot access channel {channel}")
+                logger.error("Available channels:")
+                for dialog in dialogs[:10]:  # Show first 10 for debugging
+                    name = getattr(dialog.entity, 'title', getattr(dialog.entity, 'username', 'Unknown'))
+                    logger.error(f"  - {name} (ID: {dialog.entity.id})")
+                raise ValueError(f"Channel {channel} is not accessible")
+        
+        return channel_entities
     
     async def _handle_message(self, event: events.NewMessage.Event):
         """Handle incoming messages.
