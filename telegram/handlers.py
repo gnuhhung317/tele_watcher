@@ -161,11 +161,11 @@ class MessageHandler:
             if not await self.position_manager.can_open_position(signal):
                 logger.warning(f"Cannot open position for {signal.coin}")
                 return False
-            
+            leverage = self.trading_config.get_leverage_for_coin(signal.coin)
             # Calculate position size
             position_size = min(
-                self.trading_config.default_position_size,
-                self.trading_config.max_position_size
+                self.trading_config.default_position_size/20*leverage,
+                self.trading_config.max_position_size/20*leverage
             )
 
             # Open position

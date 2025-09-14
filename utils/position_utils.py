@@ -82,7 +82,7 @@ def get_default_tp_percentages(tp_count: int) -> List[float]:
     elif tp_count == 2:
         return [40.0, 60.0]
     elif tp_count == 3:
-        return [30.0, 40.0, 30.0]
+        return [25.0, 45.0, 30.0]
     elif tp_count == 4:
         return [20.0, 20.0, 40.0, 20.0]
     else:
