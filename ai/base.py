@@ -58,18 +58,34 @@ class BaseAIParser(ABC):
         if not signal.coin or not signal.coin.strip():
             return False
         
-        if signal.entry <= 0:
-            return False
-        
         if signal.stop_loss <= 0:
             return False
         
-        # Logic validation for long positions
-        if signal.side.value == "long" and signal.stop_loss >= signal.entry:
+        # For market orders, entry price validation is relaxed
+        if not getattr(signal, 'is_market_order', False) and signal.entry <= 0:
             return False
         
-        # Logic validation for short positions  
-        if signal.side.value == "short" and signal.stop_loss <= signal.entry:
+        # Logic validation for long positions (skip for market orders)
+        if not getattr(signal, 'is_market_order', False) and signal.side.value == "long" and signal.stop_loss >= signal.entry:
+            from utils import get_logger
+            logger = get_logger(__name__)
+            logger.error(f"LONG signal validation failed: stop_loss ({signal.stop_loss}) must be < entry ({signal.entry})")
             return False
+        
+        # Logic validation for short positions (skip for market orders)
+        if not getattr(signal, 'is_market_order', False) and signal.side.value == "short" and signal.stop_loss <= signal.entry:
+            from utils import get_logger
+            logger = get_logger(__name__)
+            logger.error(f"SHORT signal validation failed: stop_loss ({signal.stop_loss}) must be > entry ({signal.entry})")
+            return False
+        
+        # For market orders, just check that stop loss is reasonable
+        if getattr(signal, 'is_market_order', False):
+            # Basic sanity check - stop loss should not be 0 or negative
+            if signal.stop_loss <= 0:
+                from utils import get_logger
+                logger = get_logger(__name__)
+                logger.error(f"Market order validation failed: stop_loss ({signal.stop_loss}) must be positive")
+                return False
         
         return True

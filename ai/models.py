@@ -36,6 +36,7 @@ class TradingSignal:
     raw_message: str = ""
     metadata: Optional[Dict[str, Any]] = None
     order_type: Optional[str] = None  # "market" or "limit" - AI decides from signal content
+    is_market_order: bool = False  # Flag for market orders that don't need specific entry price
     
     def __post_init__(self):
         """Set default timestamp and metadata if not provided."""
